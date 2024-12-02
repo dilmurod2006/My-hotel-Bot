@@ -1,3 +1,4 @@
+# sqlite3 modulini import qilish
 import sqlite3
 
 
@@ -16,6 +17,7 @@ def create_frame_databse():
         jinsi BOOLEAN,
         passport_seriya TEXT,
         passport_yili TEXT,
+        phone_number TEXT,
         xona_id INTEGER,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (xona_id) REFERENCES xonalar (room_id)
@@ -35,10 +37,24 @@ def create_frame_databse():
     CREATE TABLE IF NOT EXISTS xonalar (
         room_id INTEGER PRIMARY KEY AUTOINCREMENT,
         xona_turi_id INTEGER NOT NULL,
+        xona_haqida TEXT,
         band_xona BOOLEAN DEFAULT 0,
         FOREIGN KEY (xona_turi_id) REFERENCES xonaturi (id)
     );
     """)
+
+
+    # 4. 'admins' jadvali
+    cur.execute(
+        """
+    CREATE TABLE IF NOT EXISTS admins (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        full_name TEXT,
+        telegram_id BIGINTEGER NOT NULL
+    );
+"""
+    )
+
 
     con.commit()
     con.close()
