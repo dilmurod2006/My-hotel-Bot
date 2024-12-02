@@ -20,7 +20,7 @@ def create_admin(full_name, telegram_id):
         """, (full_name, telegram_id))
         
         con.commit()
-        print(f"Admin '{full_name}' muvaffaqiyatli qo'shildi.")
+        # print(f"Admin '{full_name}' muvaffaqiyatli qo'shildi.")
     except sqlite3.Error as e:
         print(f"Xatolik yuz berdi: {e}")
     finally:
@@ -38,7 +38,7 @@ def get_all_admins():
         admins = cur.fetchall()  # Barcha natijalarni olish
         
         if admins:
-            print("Hozirgi adminlar ro'yxati:")
+            # print("Hozirgi adminlar ro'yxati:")
             for admin in admins:
                 print(f"ID: {admin[0]}, Ismi: {admin[1]}")
             return admins  # ID va full_name qaytariladi

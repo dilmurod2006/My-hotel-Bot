@@ -13,7 +13,7 @@ from crud import (
     get_all_room_types
 )
 
-TOKEN = "7675610993:AAH5XYiyPXqhMC5mACpaNKZoL1FRjUjUp8Y"
+TOKEN = "7675610993:AAEZzNcQJpGWTOctlGx9cjbulGsvTkogv0g"
 bot = telebot.TeleBot(TOKEN)
 
 ADMINS = [1231232131,7054004046,5420071824]
@@ -69,15 +69,19 @@ def tugmalarga_javob_berish(message):
         response = ""
         if orders:
             for order in orders:
-                response += f"ID: {order['ID']}\n" \
-                            f"Ism-familiya: {order['Ism-familiya']}\n" \
-                            f"Tug'ilgan yili: {order["Tug'ilgan yili"]}\n" \
-                            f"Jinsi: {order['Jinsi']}\n" \
-                            f"Passport seriyasi: {order['Passport seriyasi']}\n" \
-                            f"Xona turi: {order['Xona turi']}\n" \
-                            f"Yaratilgan vaqti: {order['Yaratilgan vaqti']}\n\n"
+                response += f"""
+ID: {order['ID']}
+Ism-familiya: {order['Ism-familiya']}
+Tug'ilgan yili: {order["Tug'ilgan yili"]}
+Jinsi: {order['Jinsi']}
+Passport seriyasi: {order['Passport seriyasi']}
+Xona turi: {order['Xona turi']}
+Yaratilgan vaqti: {order['Yaratilgan vaqti']}
+"""
+
         else:
             response = "Hozircha hech qanday buyurtma mavjud emas."
+
         bot.send_message(message.chat.id, response)
 
     # xona turini qo'shish
@@ -261,14 +265,17 @@ def process_passport_input(message):
     passport_seriya = message.text.strip()  # Get passport serial number
     order = get_order_by_passport(passport_seriya)  # Call the function to get the order
     if isinstance(order, dict):  # If a single order is found
-        response = f"ID: {order['ID']}\n" \
-                   f"Ism-familiya: {order['Ism-familiya']}\n" \
-                   f"Tug'ilgan yili: {order["Tug'ilgan yili"]}\n" \
-                   f"Jinsi: {order['Jinsi']}\n" \
-                   f"Passport seriyasi: {order['Passport seriyasi']}\n" \
-                   f"Passport yili: {order['Passport yili']}\n" \
-                   f"Xona turi: {order['Xona turi']}\n" \
-                   f"Yaratilgan vaqti: {order['Yaratilgan vaqti']}\n"
+        response += f"""
+ID: {order['ID']}
+Ism-familiya: {order['Ism-familiya']}
+Tug'ilgan yili: {order["Tug'ilgan yili"]}
+Jinsi: {order['Jinsi']}
+Passport seriyasi: {order['Passport seriyasi']}
+Xona turi: {order['Xona turi']}
+Yaratilgan vaqti: {order['Yaratilgan vaqti']}
+
+"""
+
         bot.send_message(message.chat.id, response)
     else:  # If no order found
         bot.send_message(message.chat.id, order)  # Error message from `get_order_by_passport`
