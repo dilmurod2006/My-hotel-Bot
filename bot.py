@@ -12,7 +12,8 @@ from crud import (
     create_admin,
     delete_admin,
     get_all_admins,
-    get_all_room_types
+    get_all_room_types,
+    get_available_rooms
 )
 from tugmalar import (
     user_keyboard,
@@ -24,6 +25,7 @@ from tugmalar import (
 )
 
 TOKEN = "7675610993:AAEZzNcQJpGWTOctlGx9cjbulGsvTkogv0g"
+# TOKEN = "8138018168:AAERImAlc1u0h_dWm5UOQbO9OKwlg-7Pvr0"
 bot = telebot.TeleBot(TOKEN)
 
 ADMINS = [1231232131, 7054004046, 5420071824]
@@ -308,6 +310,195 @@ Yaratilgan vaqti: {order['Yaratilgan vaqti']}
 
 
 # users panel start
+user_data = {}  # Dictionary to maintain user data
+@bot.message_handler(func=lambda message: message.text == "Xona buyurtma qilish")
+def xona_buyurtma(message):
+    markup = types.InlineKeyboardMarkup()
+    xona_turi = get_all_room_types()  # Xona turlari ro'yxatini olish
+    if xona_turi:
+        for xona in xona_turi:
+            markup.add(types.InlineKeyboardButton(xona[1], callback_data=f"xona_{xona[0]}"))
+        bot.send_message(message.chat.id, "Xona turini tanlang:", reply_markup=markup)
+    else:
+        bot.send_message(message.chat.id, "Hozircha hech qanday xona turi mavjud emas.")
+
+# Inline buttonlar callback datalar uchun
+@bot.callback_query_handler(func=lambda call: call.data.startswith("xona_"))
+def inline_tugmaga_javob(call):
+    """
+    Inline tugmalar uchun javob.
+    """
+    xona_turi_id = int(call.data.split("_")[1])
+    natija = bush_xonalar_topish(xona_turi_id)
+
+    if "bush_xonalar" in natija:
+        response = f"🏨 *{natija['xona_turi']}* turiga mos bo'sh xonalar:\n\n"
+        markup = types.InlineKeyboardMarkup()
+
+        for xona in natija["bush_xonalar"]:
+            response += (
+                f"🆔 Xona ID: {xona['room_id']}\n"
+                f"🛋 Xona turi: {xona['xona_turi']}\n"
+                f"📖 Xona haqida: {xona['xona_haqida']}\n\n"
+                f"💰 Narx: {xona['price']} so'm\n\n"
+            )
+            markup.add(
+                types.InlineKeyboardButton(
+                    f"Buyurtma qilish - Xona ID {xona['room_id']}",
+                    callback_data=f"buyurtma_{xona['room_id']}"
+                )
+            )
+
+        bot.send_message(call.message.chat.id, response, reply_markup=markup, parse_mode="Markdown")
+    else:
+        response = natija["message"]
+        bot.send_message(call.message.chat.id, response, parse_mode="Markdown")
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("buyurtma_"))
+def buyurtma_qilish_tugma(call):
+    """
+    Buyurtma qilish tugmasiga javob.
+    """
+    xona_id = int(call.data.split("_")[1])
+
+    # Foydalanuvchi ma'lumotlarini yig'ish uchun javobni boshqarish
+    user_data[call.message.chat.id] = {'xona_id': xona_id}
+    bot.send_message(call.message.chat.id, "Ismingiz va familiyangizni kiriting:")
+    bot.register_next_step_handler(call.message, process_full_name)
+
+def process_full_name(message):
+    """
+    Foydalanuvchi to'liq ismini olish.
+    """
+    user_data[message.chat.id]['full_name'] = message.text
+    bot.send_message(message.chat.id, "Tug'ilgan yilingizni kiriting (masalan: 1995):")
+    bot.register_next_step_handler(message, process_birth_year)
+
+def process_birth_year(message):
+    """
+    Foydalanuvchi tug'ilgan yilini olish.
+    """
+    user_data[message.chat.id]['tugilgan_yili'] = message.text
+    markup = types.InlineKeyboardMarkup()
+    markup.add(
+        types.InlineKeyboardButton("Erkak", callback_data="jinsi_erkak"),
+        types.InlineKeyboardButton("Ayol", callback_data="jinsi_ayol")
+    )
+    bot.send_message(message.chat.id, "Jinsingizni kiriting (Erkak/Ayol):", reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("jinsi_"))
+def process_gender_choice(call):
+    """
+    Genderni tanlash tugmasiga javob.
+    """
+    jinsi = call.data.split("_")[1]  # Genderni tanlash uchun callback_data dan ajratish
+    user_data[call.message.chat.id]['jinsi'] = jinsi
+
+    # Ask for passport details next
+    bot.send_message(call.message.chat.id, "Pasport seriya va raqamini kiriting (masalan: AA1234567):")
+    bot.register_next_step_handler(call.message, process_passport)
+
+def process_passport(message):
+    """
+    Foydalanuvchi pasport ma'lumotlarini olish.
+    """
+    user_data[message.chat.id]['passport_seriya'] = message.text
+    bot.send_message(message.chat.id, "Pasport berilgan yilni kiriting (masalan: 2020):")
+    bot.register_next_step_handler(message, process_passport_year)
+
+def process_passport_year(message):
+    """
+    Foydalanuvchi pasport berilgan yilini olish.
+    """
+    user_data[message.chat.id]['passport_yili'] = message.text
+    bot.send_message(message.chat.id, "Telefon raqamingizni kiriting (+998901234567):")
+    bot.register_next_step_handler(message, get_start_date)
+
+def get_start_date(message):
+    """
+    Foydalanuvchi telefon raqamini olish.
+    """
+    user_data[message.chat.id]['phone_number'] = message.text
+    bot.send_message(message.chat.id, "Xonadaga borish sanangizni kiriting (masalan: 01.01.2023 14:00):")
+    bot.register_next_step_handler(message, get_end_date)
+
+def get_end_date(message):
+    """
+    Foydalanuvchi xonadagi borish tugash sanasini olish.
+    """
+    user_data[message.chat.id]['start_date'] = message.text
+    bot.send_message(message.chat.id, "Xonadagi tugash sanangizni kiriting (masalan: 01.01.2023 14:00):")
+    bot.register_next_step_handler(message, tulov_qilish)
+
+def tulov_qilish(message):
+    """
+    Buyurtma yakunlash.
+    """
+    user_data[message.chat.id]['end_date'] = message.text
+
+    # Collecting data from user_data dictionary
+    markup = types.InlineKeyboardMarkup()
+    markup = types.InlineKeyboardMarkup()
+    markup.add(
+    types.InlineKeyboardButton("Click", callback_data="Click"),
+    types.InlineKeyboardButton("Payme", callback_data="payme"),
+    types.InlineKeyboardButton("Uzcard", callback_data="uzcard"),
+    types.InlineKeyboardButton("Humo", callback_data="humo"),
+    types.InlineKeyboardButton("Visa", callback_data="visa"),
+    types.InlineKeyboardButton("Mastercard", callback_data="mastercard")
+)
+
+
+    bot.send_message(message.chat.id, "Tulov turini tanlang", reply_markup=markup)
+
+# to'lov amalga oshirish
+@bot.callback_query_handler(func=lambda call: True)
+def tulov_callback_handler(call):
+    if call.data in ["Click", "payme", "uzcard", "humo", "visa", "mastercard"]:
+        bot.send_message(call.message.chat.id, f"{call.data} raqamini kiriting")
+        bot.register_next_step_handler(call.message, get_card_data)
+
+# get card data
+def get_card_data(message):
+    """"Kartani ma'lumotlarini olish"""
+    bot.send_message(message.chat.id, "oldindan 30% to'lov amalga oshirildi ✅")
+    bot.register_next_step_handler(message, finalize_order)
+
+
+def finalize_order(message):
+    """
+    Buyurtma yakunlash.
+    """
+    user_data[message.chat.id]['end_date'] = message.text
+
+    # Collecting data from user_data dictionary
+    data = user_data[message.chat.id]
+    natija = xona_buyurtma_berish(
+        full_name=data['full_name'],
+        tugilgan_yili=data['tugilgan_yili'],
+        jinsi=data['jinsi'],
+        passport_seriya=data['passport_seriya'],
+        passport_yili=data['passport_yili'],
+        phone_number=data['phone_number'],
+        xona_raqami=data['xona_id'],
+        start_date=data['start_date'],
+        end_date=data['end_date']
+    )
+
+    if natija.get("message"):
+        bot.send_message(message.chat.id, "✅ Xona muvaffaqiyatli buyurtma qilindi!")
+    else:
+        bot.send_message(message.chat.id, f"❌ Xatolik qayta urinib ko'ring!")
+
+
+
+
+
+# Botdagi ma'lumotlarni vaqtincha saqlash uchun lug'at
+
+
+
 
 # users panel stop
 

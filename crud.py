@@ -518,3 +518,19 @@ def get_order_by_passport(passport_seriya):
 # Sinovdan o'tkazish
 # natija = get_order_by_passport("AA1233334567")
 # print(natija)
+
+# Bo'sh xonalarni olish funksiyasi
+def get_available_rooms(room_type_id):
+    try:
+        con, cur = databse_ulash()
+        cur.execute("""
+            SELECT xona_raqami, narx, tavsif
+            FROM xonalar
+            WHERE xona_turi_id = ? AND band_xona = 0
+        """, (room_type_id,))
+        available_rooms = cur.fetchall()
+        con.close()
+        return available_rooms
+    except sqlite3.Error as e:
+        print(f"Xatolik: {e}")
+        return []
